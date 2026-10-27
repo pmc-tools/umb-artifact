@@ -10,7 +10,7 @@ Artifact supplement for the TACAS 2027 regular tool submission paper: *UMB: A Un
 
 ## Availability
 
-The artifact is permanently archived at [Zenodo](TODO link) (DOI: TODO) and hosted on [GitHub](TODO link).
+The artifact is permanently archived at [Zenodo](TODO link) (DOI: TODO) and hosted on [GitHub](https://github.com/pmc-tools/umb-artifact).
 It contains:
 
 | File | Content |
