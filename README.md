@@ -2,9 +2,7 @@
 
 <!-- TODO: remove all TODOs before submission -->
 
-Artifact supplement for the TACAS 2027 regular tool submission paper: *UMB: A Unified Markov Binary Format for Probabilistic Model Checking*.
-
-- **Submission number**: 0983
+- **Paper:** TACAS 2027 regular tool paper, submission 0983.
 - **Badges claimed:** Available, Functional, Reusable.
 - **Tested on:** amd64: Ubuntu 24.04, Docker 29.8; arm64: TODO.
 
@@ -17,15 +15,13 @@ It contains:
 | --- | --- |
 | `umb-artifact-{amd64,arm64}.tar.gz` | the Docker image, one per architecture |
 | `paper.pdf` | the submitted paper |
-| `umb-artifact.zip` | the artifact's repository, from which the image can be built (see below) |
+| `umb-artifact.zip` | the sources of the image |
 | `README.md` | this file |
 | `LICENSE` | license file; the tools in the image keep their own licenses |
 
-The image contains everything needed to replicate the empirical claims.
-It is based on the [UMB Observatory](https://github.com/pmc-tools/umb-observatory) and contains Storm 1.14.0+, PRISM 4.11+, mcsta v3.1.315 and umbi 0.2.15 (exact versions in [Building the image](#building-the-image)), plus the scripts and benchmarks needed to replicate the paper's results.
+The image is based on the [UMB Observatory](https://github.com/pmc-tools/umb-observatory) and contains Storm 1.14.0+, PRISM 4.11+, mcsta v3.1.315 and umbi 0.2.15 (exact versions in [Building the image](#building-the-image)), plus the scripts and benchmarks to replicate the paper's claims.
 
-The repository `umb-artifact.zip` is only needed to build the image or to inspect the sources.
-It contains:
+`umb-artifact.zip` is only needed to build the image or to inspect the sources:
 
 | Path | Content |
 | --- | --- |
@@ -41,7 +37,7 @@ Docker on amd64 or arm64.
 No network access is needed after loading the image.
 Podman works as well: replace `docker` by `podman` in all commands.
 
-The resources needed for the smoke test and for each mode of the benchmarks of Sec. 6 (see below):
+Resources for the smoke test and the modes of the Sec. 6 benchmarks:
 
 | Mode | CPU, RAM | Free disk (incl. the 10 GiB image) | Time |
 | --- | --- | --- | --- |
@@ -79,7 +75,6 @@ docker run --rm -t -v "$PWD/results:/artifact/results" umb-artifact python /arti
 This runs the benchmarks of Sec. 6 on one model (`consensus.4-4`) with all tools and formats.
 It prints the generated command lines, then one line per run, first the 16 exports, then the 23 imports, each ending in `... done (<time>)`.
 Its last line is `Done: results/smoke/`; `results/smoke/experiments/csv/` then contains no `TO`, `MO` or `ERR` entries.
-The claim of [Fig. 4](#sec-4-fig-4-textual-view-of-a-umb-file) also takes only a moment to check.
 
 ### Replicating empirical claims
 
@@ -110,29 +105,29 @@ Each mode writes `plots.pdf` (Figs. 5–6) and `paper_numbers.txt` (the numbers 
 - `replot` recomputes them from the logs of our runs (`umb-benchmarking/experiments-paper/logs-paper.tar.gz`); the result is identical to the paper.
 - `subset` runs 20 of the 36 models (1800 s limit, 1 repetition), `full` all 36 models as in the paper (7200 s limit, 5 repetitions, one run after the other).
   Logs and an HTML overview of all measurements: `results/<mode>/experiments/` (`html/index.html`).
-  For the subset, the numbers differ from the paper, but the factors between formats and tools should be similar.
+  The subset leaves out the largest models, so its factors are smaller than the paper's (e.g., Storm loads UMB 31× instead of 40× faster than JANI), but it suffices to replicate the main claims of Sec. 6: for every tool, UMB is loaded and written faster than the other formats, compresses about 7× (GZip) and 22× (XZ), and reduces the total model checking time; the plots look qualitatively the same as in the paper.
 - `--jobs N` (e.g. `run.py subset --jobs 4`) runs N benchmark runs at a time; the measured times are then less accurate.
 - Absolute times depend on the machine (paper: Intel Xeon 8468, 4 cores, 32 GiB).
   With less than 32 GiB of RAM, more runs fail with out-of-memory (`MO`).
-- The BCG file sizes (Fig. 5, mcsta, right) need CADP's `bcg_io`, which is proprietary.
-  `replot` uses our measured BCG sizes; `subset` and `full` leave the BCG lines out, unless you supply CADP as below.
 
-**With your own CADP** (the paper used CADP 2025-l).
-Start a shell in the container with your CADP installation mounted:
+**BCG results need CADP.**
+The BCG file sizes (Fig. 5, mcsta, right) and the comparison of UMB with BCG in Sec. 6.2 are obtained with `bcg_io` of CADP, which is proprietary and not in the image.
+`replot` reproduces them from our measurements; `subset` and `full` leave them out (no BCG lines in Fig. 5, `n/a` in `paper_numbers.txt`), unless you supply your own CADP (the paper used 2025-l; free for academic users: https://cadp.inria.fr/registration/).
+To do so, start a shell in the container with `/path/to/your/cadp` replaced by your CADP directory on the host (the one containing `bin.<arch>/bcg_io`):
 
 ```bash
-docker run --rm -it -v "$CADP:/opt/cadp:ro" -e CADP=/opt/cadp -v "$PWD/results:/artifact/results" umb-artifact bash
+docker run --rm -it -v "/path/to/your/cadp:/opt/cadp:ro" -e CADP=/opt/cadp -v "$PWD/results:/artifact/results" umb-artifact bash
 ```
 
-In the container, link `bcg_io` into the harness, enable its BCG step, and run a mode (`smoke`, `subset` or `full`):
+In the container, link `bcg_io` into the harness (replace `bin.x64` by your architecture directory if it differs), enable its BCG step, and run a mode (`smoke`, `subset` or `full`):
 
 ```bash
-ln -s /opt/cadp/bin.x64/bcg_io /artifact/umb-benchmarking/bin/bcgio    # bin.x64 on amd64
+ln -s /opt/cadp/bin.x64/bcg_io /artifact/umb-benchmarking/bin/bcgio
 sed -i 's|^# python3 ../scripts/aut_to_bcg.py|python3 ../scripts/aut_to_bcg.py|' /artifact/umb-benchmarking/*.sh
 python /artifact/claims/3-sec6-benchmarks/run.py smoke
 ```
 
-The BCG sizes then appear in `results/<mode>/` as for `replot`.
+The BCG sizes then appear in `results/<mode>/experiments/` (as `bcgio`), and for `subset` and `full` also in `plots.pdf` and `paper_numbers.txt`.
 
 #### Sec. 6.4: explicit encodings in the PRISM language
 
@@ -156,8 +151,6 @@ From the UMB file, both models take about a second; from the PRISM file, the 10k
 umbi builds the example MDP from Python and writes it to a UMB file: section "Creating a model with umbi" of the UMB Observatory's getting-started notebook (see [Using UMB](#using-umb) for how to run it).
 
 ## Reusability
-
-This section documents how the tools use UMB, how to benchmark further models, and how to build the image.
 
 ### Using UMB
 
