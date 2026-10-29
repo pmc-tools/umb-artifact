@@ -1,5 +1,5 @@
 # Builds the artifact image natively on amd64 and arm64, pushes both untagged to the GitHub container registry,
-# tags them together as the multi-arch <image>:<tag> and keeps umb-artifact-<arch>.tar.gz as a workflow artifact.
+# tags them together as the multi-arch <image>:<tag> and collects the files of the Zenodo upload in the workflow artifact zenodo.
 
 name: image
 
@@ -68,6 +68,7 @@ jobs:
           name: umb-artifact-${{ matrix.arch }}
           path: umb-artifact-${{ matrix.arch }}.tar.gz
           compression-level: 0
+          retention-days: 1
 
   manifest:
     needs: build
@@ -85,3 +86,26 @@ jobs:
       - run: >-
           docker buildx imagetools create -t ${{ inputs.image }}:${{ inputs.tag }}
           ${{ inputs.image }}@$(cat digest-amd64) ${{ inputs.image }}@$(cat digest-arm64)
+
+  zenodo:
+    needs: build
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+      - run: zip -qr umb-artifact.zip artifact -x '*/.git' '*/.git/*'
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: umb-artifact-*
+          merge-multiple: true
+      - uses: actions/upload-artifact@v4
+        with:
+          name: zenodo
+          path: |
+            README.md
+            paper.pdf
+            LICENSE
+            umb-artifact.zip
+            umb-artifact-*.tar.gz
+          compression-level: 0

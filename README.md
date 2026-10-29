@@ -8,7 +8,7 @@
 
 ## Availability
 
-The artifact is permanently archived at [Zenodo](TODO link) (DOI: TODO) and hosted on [GitHub](https://github.com/pmc-tools/umb-artifact).
+The artifact is permanently archived at [Zenodo](https://zenodo.org/records/23765898) and hosted on [GitHub](https://github.com/pmc-tools/umb-artifact).
 It contains:
 
 | File | Content |
