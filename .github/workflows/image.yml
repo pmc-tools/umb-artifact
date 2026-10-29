@@ -1,0 +1,87 @@
+# Builds the artifact image natively on amd64 and arm64, pushes both untagged to the GitHub container registry,
+# tags them together as the multi-arch <image>:<tag> and keeps umb-artifact-<arch>.tar.gz as a workflow artifact.
+
+name: image
+
+on:
+  workflow_dispatch:
+    inputs:
+      image:
+        default: ghcr.io/pmc-tools/umb-artifact
+      tag:
+        default: tacas27
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - { arch: amd64, runner: ubuntu-24.04 }
+          - { arch: arm64, runner: ubuntu-24.04-arm }
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 360
+    env:
+      IMAGE: ${{ inputs.image }}
+    steps:
+      - name: Free disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache /usr/local/share/boost
+          docker system prune -af
+          df -h /
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build and push
+        working-directory: artifact
+        # Runners have 4 cores and 16 GB RAM: compile Storm with one job per core
+        run: |
+          docker buildx bake \
+            --set observatory.args.no_threads=$(nproc) \
+            --set artifact.tags=$IMAGE \
+            --set artifact.output=type=image,push-by-digest=true,name-canonical=true,push=true \
+            --metadata-file $RUNNER_TEMP/meta.json
+          jq -r '.artifact."containerimage.digest"' $RUNNER_TEMP/meta.json > $RUNNER_TEMP/digest-${{ matrix.arch }}
+          cat $RUNNER_TEMP/digest-${{ matrix.arch }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: digest-${{ matrix.arch }}
+          path: ${{ runner.temp }}/digest-${{ matrix.arch }}
+      - name: Save image
+        run: |
+          docker buildx prune -af
+          docker pull $IMAGE@$(cat $RUNNER_TEMP/digest-${{ matrix.arch }})
+          docker tag $IMAGE@$(cat $RUNNER_TEMP/digest-${{ matrix.arch }}) umb-artifact
+          docker save umb-artifact | gzip > umb-artifact-${{ matrix.arch }}.tar.gz
+          ls -l umb-artifact-${{ matrix.arch }}.tar.gz
+      - uses: actions/upload-artifact@v4
+        with:
+          name: umb-artifact-${{ matrix.arch }}
+          path: umb-artifact-${{ matrix.arch }}.tar.gz
+          compression-level: 0
+
+  manifest:
+    needs: build
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: digest-*
+          merge-multiple: true
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - run: >-
+          docker buildx imagetools create -t ${{ inputs.image }}:${{ inputs.tag }}
+          ${{ inputs.image }}@$(cat digest-amd64) ${{ inputs.image }}@$(cat digest-arm64)
