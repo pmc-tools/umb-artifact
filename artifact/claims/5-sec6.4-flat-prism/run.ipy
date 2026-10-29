@@ -1,0 +1,68 @@
+# %% [markdown]
+# ## Sec. 6.4: explicit encodings in the PRISM language
+# **Claim:** PRISM builds random models with 10k and 100k states, generated with umbi, from UMB and from an explicit
+# encoding in the PRISM language: from UMB, both take about a second; from the PRISM language, the 10k model takes
+# seconds, while the 100k model hits the time limit of 1 hour.<br>
+# **Estimated evaluation time:** 1 hour (`TIMEOUT = 3600`, as in the paper), or 11 minutes with `TIMEOUT = 600`, which suffices to show the point
+
+# %%
+# The time limit per PRISM call in seconds: 3600 as in the paper, 600 for a shorter run
+TIMEOUT = 3600
+
+import sys
+if "ipykernel" not in sys.modules:  # run from the shell
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--timeout", type=int, default=TIMEOUT, help="time limit per PRISM call in seconds")
+    TIMEOUT = parser.parse_args().timeout
+
+# %%
+import os
+
+import umbi
+from umbi.ats.examples.random_game import random_game
+
+os.makedirs("/tmp/5-sec6.4-flat-prism", exist_ok=True)
+os.chdir("/tmp/5-sec6.4-flat-prism")
+
+
+# The explicit encoding in the PRISM language: one command per choice, as in umbi's examples/misc/ats_smg_to_prism.py
+def write_flat_prism(mdp, path):
+    with open(path, "w") as f:
+        f.write(f"mdp\n\nmodule main\n\tstate: [0..{mdp.num_states - 1}];\n\n")
+        for state in range(mdp.num_states):
+            for choice in mdp.get_state_choices(state):
+                action = mdp.choice_action_to_name[mdp.choice_to_choice_action[choice]]
+                branches = " + ".join(
+                    f"{mdp.branch_to_probability[b]} : (state'={mdp.branch_to_target[b]})"
+                    for b in mdp.get_choice_branches(choice)
+                )
+                f.write(f"\t[{action}] state={state} -> {branches};\n")
+        init = " | ".join(f"state={s}" for s in mdp.initial_states)
+        f.write(f"endmodule\n\ninit {init} endinit\n")
+
+
+# %%
+# Plain PRISM does not support games: each random game becomes an MDP with the same states, choices and branches.
+# PRISM's own output lists every action of the model: it goes to prism.log.
+for n in (10000, 100000):
+    print(f"######## {n} states")
+    game = random_game(n, seed=0)
+    game.num_players = 1  # SMG -> MDP: a single player owns all states
+    game.state_to_player = [0] * n
+    game.player_to_name = None  # PRISM rejects player names in non-game models
+    umbi.ats.write(game, f"game-{n}.umb")
+    write_flat_prism(game, f"game-{n}.prism")
+    print(f"Model size: {game.num_states} states, {game.num_choices} choices, {game.num_branches} branches")
+    print(f"File sizes: {os.path.getsize(f'game-{n}.umb') / 2**20:.1f} MiB (.umb), "
+          f"{os.path.getsize(f'game-{n}.prism') / 2**20:.1f} MiB (.prism)")
+
+    print("PRISM builds the model from the UMB file:")
+    %time !timeout {TIMEOUT} prism -ex -importmodel game-{n}.umb > prism.log
+    if _exit_code:
+        print("no result (time limit)" if _exit_code == 124 else f"exit code {_exit_code}")
+
+    print("PRISM builds the model from the PRISM file:")
+    %time !timeout {TIMEOUT} prism -ex game-{n}.prism > prism.log
+    if _exit_code:
+        print("no result (time limit)" if _exit_code == 124 else f"exit code {_exit_code}")

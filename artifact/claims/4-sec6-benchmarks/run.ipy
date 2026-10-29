@@ -1,0 +1,107 @@
+# %% [markdown]
+# ## Sec. 6.1-6.3, Figs. 5-6: import and export times, file sizes, total times
+# **Claim:** for every tool, UMB is loaded and written faster than the other formats, compresses well (GZip, XZ), and
+# reduces the total model checking time (Figs. 5-6 and the numbers of Sec. 6.1-6.3).<br>
+# **Estimated evaluation time:** 1 minute (`smoke`, `replot`), 5.5 hours (`subset`) or 2 weeks (`full`)
+#
+# The benchmarks of `umb-benchmarking/`, in one of four modes (set `MODE` below); results go to
+# `/artifact/results/<mode>/`, i.e. `results/<mode>/` in the mounted directory:
+# - `smoke`: benchmarks on one small model
+# - `replot`: Figs. 5-6 and the numbers of Sec. 6.1-6.3 from the logs of our runs
+# - `subset`: benchmarks on 20 of the 36 models, 1800 s limit, 1 repetition
+# - `full`: benchmarks on all 36 models, 7200 s limit, 5 repetitions
+#
+# Run `subset` and `full` from the shell rather than in the notebook: closing the browser or restarting the kernel stops them.
+
+# %%
+MODE = "replot"  # smoke, replot, subset or full
+JOBS = 1  # with smoke, subset or full: benchmarks at a time (needs JOBS times the RAM)
+
+import sys
+if "ipykernel" not in sys.modules:  # run from the shell
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument("mode", choices=["smoke", "replot", "subset", "full"])
+    parser.add_argument("--jobs", type=int, default=JOBS, help="runs at a time (smoke, subset, full)")
+    args = parser.parse_args()
+    MODE, JOBS = args.mode, args.jobs
+
+# %%
+import os
+import re
+
+BENCH = "/artifact/umb-benchmarking"
+RESULTS = "/artifact/results"
+OUT = f"{RESULTS}/{MODE}"
+os.makedirs(OUT, exist_ok=True)
+
+# %% [markdown]
+# `smoke`, `subset` and `full` run the benchmarks (the harness script `smoketest.sh`, `subset.sh` or `all.sh`) and
+# copy the results to `results/<mode>/experiments/`.
+
+# %%
+if MODE != "replot":
+    script = {"smoke": "smoketest", "subset": "subset", "full": "all"}[MODE]
+    if JOBS == 1:
+        !{BENCH}/{script}.sh < /dev/null
+    else:
+        # A copy of the script that runs the invocations with xargs (the harness's run.py runs a single invocation of
+        # a json file by its index)
+        bash = open(f"{BENCH}/{script}.sh").read()
+        parallel = (r"""python3 -c "import json; print(*range(len(json.load(open('\1')))))" """
+                    rf"| xargs -n 1 -P {JOBS} python3 ../scripts/run.py \1")
+        with open(f"{BENCH}/{script}-jobs.sh", "w") as f:
+            f.write(re.sub(r"python3 \.\./scripts/run\.py (\S+) all", parallel, bash))
+        !chmod +x {BENCH}/{script}-jobs.sh
+        !grep xargs {BENCH}/{script}-jobs.sh
+        !{BENCH}/{script}-jobs.sh < /dev/null
+    # Without the exported models
+    !mkdir -p {OUT}/experiments
+    !cd {BENCH}/experiments-{script} && cp -r $(ls | grep -v '^models$') {OUT}/experiments/
+
+# %% [markdown]
+# `replot`, `subset` and `full` compute the numbers of Sec. 6.1-6.3 and Figs. 5-6, from the logs of our runs
+# (`replot`) or from the csv files of the benchmarks.
+
+# %%
+if MODE == "replot":
+    PLOTS = OUT
+    os.chdir(PLOTS)
+    !tar -xzf {BENCH}/experiments-paper/logs-paper.tar.gz 2> /dev/null
+    !mkdir -p csv
+    !cd csv && python3 {BENCH}/scripts/create_csv.py ../logs {BENCH}/models > /dev/null
+elif MODE in ("subset", "full"):
+    PLOTS = f"{OUT}/plots"
+    !mkdir -p {PLOTS}
+    !cp -r {OUT}/experiments/csv {PLOTS}/
+
+# %%
+if MODE != "smoke":
+    os.chdir(PLOTS)
+    !python3 {BENCH}/scripts/paper_numbers.py csv {BENCH}/models > paper_numbers.txt
+    !cat paper_numbers.txt
+    !python3 {BENCH}/scripts/create_tex.py csv
+    !pdflatex -interaction=batchmode plots.tex > /dev/null
+    !pdflatex -interaction=batchmode plots.tex > /dev/null  # again for the legends
+    print(f"Plots: {PLOTS}/plots.pdf, numbers: {PLOTS}/paper_numbers.txt")
+
+# %% [markdown]
+# Figs. 5-6 (shown in the notebook; also written as `plots-1.png` and `plots-2.png`):
+
+# %%
+if MODE != "smoke":
+    from IPython.display import Image, display
+    from PIL import Image as PILImage, ImageChops
+
+    !pdftoppm -png -r 150 plots.pdf plots
+    for png in ("plots-1.png", "plots-2.png"):
+        # Crop the white margins of the page
+        page = PILImage.open(png).convert("RGB")
+        page.crop(ImageChops.difference(page, PILImage.new("RGB", page.size, "white")).getbbox()).save(png)
+        if "ipykernel" in sys.modules:
+            display(Image(png))
+
+# %%
+# The container runs as root: give the results to the owner of the mounted results directory
+!chown -R $(stat -c %u:%g {RESULTS}) {RESULTS}
+print(f"Done: results/{MODE}/")

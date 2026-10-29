@@ -1,0 +1,46 @@
+# %% [markdown]
+# ## Sec. 4, Fig. 4: textual view of a UMB file
+# **Claim:** PRISM prints the UMB file of the example MDP in textual form as in Fig. 4, except for the creation date
+# and the state valuations, which it prints decoded rather than bit-packed.<br>
+# **Estimated evaluation time:** 1 minute
+
+# %%
+import os
+
+os.makedirs("/tmp/2-fig4-textual-umb", exist_ok=True)
+os.chdir("/tmp/2-fig4-textual-umb")
+
+# %% [markdown]
+# umbi writes the example MDP (Ex. 1) to `mdp.umb`:
+
+# %%
+import umbi
+
+# The MDP of Ex. 1 with the label g, the reward r, and the variables x and b of example.prism
+ats = umbi.ats.SimpleAts()
+ats.new_states(4)
+ats.initial_states = [0]
+ats.new_players(1)
+
+ats.new_choice(state=0, action_name="a", targets=[1, 2], probs=[0.5, 0.5])
+ats.new_choice(state=0, action_name="b", targets=[2, 3], probs=[0.2, 0.8])
+ats.new_choice(state=1, action_name="a", targets=[0, 1], probs=[0.9, 0.1])
+ats.new_choice_absorbing(state=2, action_name="tau")
+ats.new_choice_absorbing(state=3, action_name="tau")
+
+ats.new_ap_annotation("g").state_values = [False, False, False, True]
+ats.new_reward_annotation("r").choice_values = [0.0, 1.0, 0.0, 0.0, 0.0]
+
+valuations = ats.add_variable_valuations().add_state_valuations()
+x, b = valuations.new_variable("x"), valuations.new_variable("b")
+for state, (x_value, b_value) in enumerate([(0, False), (1, False), (2, False), (2, True)]):
+    valuations.set_entity_valuation(state, {x: x_value, b: b_value})
+
+umbi.ats.write(ats, "mdp.umb")
+
+# %% [markdown]
+# PRISM prints the contents of `mdp.umb` in textual form:
+
+# %%
+!prism -ex -importmodel mdp.umb -exportmodel mdp.umbt:format=umb,text
+!cat mdp.umbt

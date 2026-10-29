@@ -1,0 +1,44 @@
+# %% [markdown]
+# ## Sec. 5: bitcoin-attack
+# **Claim:** Storm builds, minimises and exports the bitcoin-attack MA to UMB in < 3 s (11475 states, 7551 after
+# minimisation); mcsta checks the time-bounded reachability property on it in 13 s
+# (`Probability: 0.15435216442756577`); Storm with Unif+ gives no result within 2 minutes.<br>
+# **Estimated evaluation time:** 3 minutes
+#
+# `%time` prints the wall-clock time of a command (`Wall time`; the CPU times are those of Python only).
+
+# %%
+import os
+
+CLAIM = "/artifact/claims/3-sec5-bitcoin-attack"
+os.makedirs("/tmp/3-sec5-bitcoin-attack", exist_ok=True)
+os.chdir("/tmp/3-sec5-bitcoin-attack")
+!cp {CLAIM}/ba.jani {CLAIM}/ba.properties.txt .
+
+# %% [markdown]
+# Storm builds, minimises and exports the model.
+# This differs from the paper's command, which is obsolete: there, `--janiproperty` makes Storm also check the
+# properties itself (the last step below).
+# Here, `--prop` only gives Storm the target states, so the model is slightly smaller than in the paper: 11375 states,
+# 7403 after minimisation.
+
+# %%
+%time !storm --jani ba.jani -const MALICIOUS=40,CD=50 --prop "((m_len >= 50) & (m_diff > 0))" -e dd-to-sparse --bisimulation --exportbuild ba.umb
+
+# %% [markdown]
+# mcsta checks the property with the switch-step algorithm:
+
+# %%
+# mcsta currently requires the initial state to be state 0, while Storm puts it at an arbitrary index: umb_reorder.py
+# moves it to index 0 (a temporary workaround, not in the paper)
+!python {CLAIM}/umb_reorder.py ba.umb ba-reordered.umb
+# Input from /dev/null: mcsta's progress display crashes in a container terminal
+%time !modest mcsta ba-reordered.umb ba.properties.txt --time-bounded-alg SwitchStep < /dev/null
+
+# %% [markdown]
+# Storm checks the property itself with Unif+ (the paper's command, without the export):
+
+# %%
+# Unif+ is Storm's default for time-bounded reachability on MAs
+%time !timeout 120 storm --jani ba.jani -const MALICIOUS=40,CD=50 --janiproperty -e dd-to-sparse --bisimulation
+print("no result (time limit)" if _exit_code == 124 else f"exit code {_exit_code}")

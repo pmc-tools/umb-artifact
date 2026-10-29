@@ -1,0 +1,53 @@
+# %% [markdown]
+# ## Sec. 2, Ex. 1: building a model with umbi
+# **Claim:** the snippet of Ex. 1 encodes a small MDP (Fig. 2, right) with umbi, extends it with observations to a
+# POMDP and then with players to a POSG, and writes it to a UMB file.<br>
+# **Estimated evaluation time:** 1 minute
+#
+# The snippet is split into its three steps; each step ends with a `print` of what it built (not in the paper).
+
+# %%
+import os
+
+os.makedirs("/tmp/1-sec2-ex1-umbi", exist_ok=True)
+os.chdir("/tmp/1-sec2-ex1-umbi")
+
+# %%
+import umbi
+
+# create a 4-state MDP
+ats = umbi.ats.SimpleAts()
+ats.num_states = 4
+ats.initial_states = [0]
+
+ats.new_choice(state=0, action_name="a", targets=[1, 2], probs=[.5, .5])
+ats.new_choice(state=0, action_name="b", targets=[2, 3], probs=[.2, .8])
+ats.new_choice(state=1, action_name="a", targets=[0, 1], probs=[.9, .1])
+ats.new_choice_absorbing(state=2, action_name="tau")
+ats.new_choice_absorbing(state=3, action_name="tau")
+
+print(f"MDP: {ats.num_states} states, {ats.num_choices} choices, {ats.num_branches} branches, initial states {ats.initial_states}")
+
+# %%
+# add state-to-observation annotation, making it a POMDP
+ats.num_observations = 2
+ats.observation_annotation.state_values = [0, 0, 1, 1]
+
+print(f"POMDP: {ats.num_observations} observations, state to observation {ats.observation_annotation.state_values}")
+
+# %%
+# add state-to-player annotation, making it a POSG
+ats.num_players = 2
+ats.state_to_player = [0, 1, 0, 0]
+ats.player_to_name = ["p0", "p1"]
+
+umbi.ats.write(ats, "out.umb")
+
+print(f"POSG: {ats.num_players} players {ats.player_to_name}, state to player {ats.state_to_player}")
+
+# %% [markdown]
+# `out.umb` is a tar archive: its files, and its `index.json` with the sizes of the POSG.
+
+# %%
+!tar -tf out.umb
+!tar -xOf out.umb index.json
