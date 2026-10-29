@@ -1,9 +1,7 @@
 # %% [markdown]
 # ## Sec. 6.4: explicit encodings in the PRISM language
-# **Claim:** PRISM builds random models with 10k and 100k states, generated with umbi, from UMB and from an explicit
-# encoding in the PRISM language: from UMB, both take about a second; from the PRISM language, the 10k model takes
-# seconds, while the 100k model hits the time limit of 1 hour.<br>
-# **Estimated evaluation time:** 1 hour (`TIMEOUT = 3600`, as in the paper), or 11 minutes with `TIMEOUT = 600`, which suffices to show the point
+# **Claim:** PRISM builds random models with 10k and 100k states, generated with umbi, from UMB and from an explicit encoding in the PRISM language: from UMB, both take about a second; from the PRISM language, the 10k model takes seconds, while the 100k model hits the time limit of 1 hour.<br>
+# **Estimated evaluation time:** 1 hour with the paper's time limit (`TIMEOUT = 3600`), or 11 minutes with a time limit of 10 minutes (`TIMEOUT = 600`), which suffices to show the difference
 
 # %%
 # The time limit per PRISM call in seconds: 3600 as in the paper, 600 for a shorter run

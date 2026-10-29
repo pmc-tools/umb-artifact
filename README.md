@@ -26,7 +26,7 @@ The image is based on the [UMB Observatory](https://github.com/pmc-tools/umb-obs
 | Path | Content |
 | --- | --- |
 | `docker-bake.hcl`, `docker/` | how the image is built (tool versions in `docker-bake.hcl`) |
-| `claims/<claim>/run.ipy` | one IPython script per claim of the paper, together also the notebook `claims.ipynb` (also in the image, at `/artifact/claims/`) |
+| `claims/<claim>/run.ipy` | one IPython script per claim of the paper; concatenated, they form the notebook `claims.ipynb` (in the image: `/artifact/claims/`) |
 | `umb-benchmarking/` | the benchmarks of Sec. 6: models, scripts, and the logs of our runs ([github.com/tquatmann/umb-benchmarking](https://github.com/tquatmann/umb-benchmarking)) |
 
 ## Functionality
@@ -78,10 +78,11 @@ Its last line is `Done: results/smoke/`; `results/smoke/experiments/csv/` then c
 
 ### Replicating empirical claims
 
-The claims can be replicated in two modes, with the same scripts and the same expected outputs:
+The claims can be replicated in two ways, with the same scripts and the same expected outputs:
 
 - **Shell:** each claim below has a `docker run` command, which runs the claim's IPython script `claims/<claim>/run.ipy`.
 - **Notebook:** all claims are in one notebook, `claims.ipynb`, which consists of the same scripts, one section per claim, with each step as a cell.
+  The options of the shell commands are variables in the first code cell of its section (`MODE`, `JOBS`, `TIMEOUT`).
   Start the Jupyter server of the image:
 
   ```bash
@@ -91,14 +92,14 @@ The claims can be replicated in two modes, with the same scripts and the same ex
   Then open http://localhost:8000/notebooks/claims.ipynb?token=umb in a browser.
   To stop the server, press Ctrl-C in the terminal where you started it (or choose File → Shut Down in the browser).
 
-We recommend the notebook for all claims except the `subset` and `full` runs of Sec. 6.1–6.3, which take hours to weeks and are better run from the shell: stopping the Jupyter server or restarting the kernel aborts a running benchmark, which then has to start over.
+We recommend the notebook for all claims except the `full` run of Sec. 6.1–6.3 (2 weeks), which is better run from the shell: stopping the Jupyter server or restarting the kernel aborts a running benchmark, which then has to start over.
 
 Each claim below gives the claim, the estimated evaluation time, the shell command, and what to look for in the output, which is the same in both modes.
 Absolute times depend on the machine (paper: Intel Xeon 8468, 4 cores, 32 GiB).
 
 #### Sec. 2, Ex. 1: building a model with umbi
 
-- **Claim:** the snippet of Ex. 1 encodes a small MDP with umbi, extends it with observations to a POMDP and then with players to a POSG, and writes it to a UMB file.
+- **Claim:** the snippet of Ex. 1 encodes a small MDP (Fig. 2, right) with umbi, extends it with observations to a POMDP and then with players to a POSG, and writes it to a UMB file.
 - **Estimated evaluation time:** 1 minute
 
 ```bash
@@ -184,7 +185,7 @@ The harness then also converts the exported `.aut` files to BCG, and the BCG siz
 
 #### Sec. 6.4: explicit encodings in the PRISM language
 
-- **Claim:** PRISM builds random models with 10k and 100k states from UMB and from an explicit encoding in the PRISM language: from UMB, both take about a second; from the PRISM language, the 10k model takes seconds, while the 100k model hits the time limit of 1 hour.
+- **Claim:** PRISM builds random models with 10k and 100k states, generated with umbi, from UMB and from an explicit encoding in the PRISM language: from UMB, both take about a second; from the PRISM language, the 10k model takes seconds, while the 100k model hits the time limit of 1 hour.
 - **Estimated evaluation time:** 1 hour with the paper's time limit, or 11 minutes with a time limit of 10 minutes, which suffices to show the difference
 
 ```bash

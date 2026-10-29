@@ -1,25 +1,18 @@
 # %% [markdown]
-# ## Sec. 6.1-6.3, Figs. 5-6: import and export times, file sizes, total times
-# **Claim:** each tool loads UMB faster than the other formats (sometimes by orders of magnitude) and writes it about
-# an order of magnitude faster than its textual formats; compression shrinks UMB files about 7× (GZip) and 23× (XZ);
-# and UMB reduces the total model checking time for almost all models, sometimes by orders of magnitude (Figs. 5-6
-# and the numbers of Sec. 6.1-6.3).<br>
+# ## Sec. 6.1–6.3, Figs. 5–6: import and export times, file sizes, total times
+# **Claim:** each tool loads UMB faster than the other formats (sometimes by orders of magnitude) and writes it about an order of magnitude faster than its textual formats; compression shrinks UMB files about 7× (GZip) and 23× (XZ); and UMB reduces the total model checking time for almost all models, sometimes by orders of magnitude (Figs. 5–6 and the numbers of Sec. 6.1–6.3).<br>
 # **Estimated evaluation time:** 1 minute (`smoke`, `replot`), 5.5 hours (`subset`) or 2 weeks (`full`)
 #
-# The benchmarks of `umb-benchmarking/`, in one of four modes (set `MODE` below); results go to
-# `/artifact/results/<mode>/`, i.e. `results/<mode>/` in the mounted directory:
+# The benchmarks of `umb-benchmarking/`, in one of four modes (set `MODE` below); results go to `results/<mode>/` in the mounted directory:
 # - `smoke`: benchmarks on one small model
-# - `replot`: Figs. 5-6 and the numbers of Sec. 6.1-6.3 from the logs of our runs
+# - `replot`: Figs. 5–6 and the numbers of Sec. 6.1–6.3 from the logs of our runs
 # - `subset`: benchmarks on 20 of the 36 models, 1800 s limit, 1 repetition
 # - `full`: benchmarks on all 36 models, 7200 s limit, 5 repetitions
 #
-# With `smoke`, `subset` or `full`, `JOBS` > 1 runs that many benchmarks at a time, needing that many times the RAM; the
-# measured times are then less accurate.
-# We recommend running `subset` and `full` from the shell rather than in the notebook: stopping the Jupyter server or
-# restarting the kernel aborts a running benchmark, which then has to start over.
+# With `smoke`, `subset` or `full`, `JOBS` > 1 runs that many benchmarks at a time, needing that many times the RAM; the measured times are then less accurate.
+# We recommend running `full` from the shell: stopping the Jupyter server or restarting the kernel aborts a running benchmark, which then has to start over.
 #
-# The BCG file sizes need `bcg_io` of CADP, which is proprietary and not in the image; `replot` uses our measurements, `smoke`, `subset` and `full` leave them out.
-# To include them, use your own licensed CADP from the shell as the README describes ("BCG results need CADP"): the container needs the fixed hostname `umb-artifact` (`docker run --hostname umb-artifact`), since CADP licenses are bound to a machine name.
+# The BCG file sizes need `bcg_io` of CADP, which is proprietary and not in the image: `replot` uses our measurements, the other modes leave them out unless you supply your own CADP from the shell (README, "BCG results need CADP").
 
 # %%
 MODE = "replot"  # smoke, replot, subset or full
@@ -44,8 +37,7 @@ OUT = f"{RESULTS}/{MODE}"
 os.makedirs(OUT, exist_ok=True)
 
 # %% [markdown]
-# `smoke`, `subset` and `full` run the benchmarks (the harness script `smoketest.sh`, `subset.sh` or `all.sh`) and
-# copy the results to `results/<mode>/experiments/`.
+# `smoke`, `subset` and `full` run the benchmarks (the harness script `smoketest.sh`, `subset.sh` or `all.sh`) and copy the results to `results/<mode>/experiments/`.
 
 # %%
 if MODE != "replot":
@@ -53,8 +45,7 @@ if MODE != "replot":
     if JOBS == 1:
         !{BENCH}/{script}.sh < /dev/null
     else:
-        # A copy of the script that runs the invocations with xargs (the harness's run.py runs a single invocation of
-        # a json file by its index)
+        # A copy of the script that runs the invocations with xargs (the harness's run.py runs a single invocation of a json file by its index)
         bash = open(f"{BENCH}/{script}.sh").read()
         parallel = (r"""python3 -c "import json; print(*range(len(json.load(open('\1')))))" """
                     rf"| xargs -n 1 -P {JOBS} python3 ../scripts/run.py \1")
@@ -68,8 +59,7 @@ if MODE != "replot":
     !cd {BENCH}/experiments-{script} && cp -r $(ls | grep -v '^models$') {OUT}/experiments/
 
 # %% [markdown]
-# `replot`, `subset` and `full` compute the numbers of Sec. 6.1-6.3 and Figs. 5-6, from the logs of our runs
-# (`replot`) or from the csv files of the benchmarks.
+# `replot`, `subset` and `full` compute the numbers of Sec. 6.1–6.3 and Figs. 5–6, from the logs of our runs (`replot`) or from the csv files of the benchmarks.
 
 # %%
 if MODE == "replot":
@@ -94,7 +84,7 @@ if MODE != "smoke":
     print(f"Plots: {PLOTS}/plots.pdf, numbers: {PLOTS}/paper_numbers.txt")
 
 # %% [markdown]
-# Figs. 5-6 (shown in the notebook; also written as `plots-1.png` and `plots-2.png`):
+# Figs. 5–6 (shown in the notebook; also written as `plots-1.png` and `plots-2.png`):
 
 # %%
 if MODE != "smoke":

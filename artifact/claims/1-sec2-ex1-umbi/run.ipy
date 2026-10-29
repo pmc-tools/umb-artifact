@@ -1,7 +1,6 @@
 # %% [markdown]
 # ## Sec. 2, Ex. 1: building a model with umbi
-# **Claim:** the snippet of Ex. 1 encodes a small MDP (Fig. 2, right) with umbi, extends it with observations to a
-# POMDP and then with players to a POSG, and writes it to a UMB file.<br>
+# **Claim:** the snippet of Ex. 1 encodes a small MDP (Fig. 2, right) with umbi, extends it with observations to a POMDP and then with players to a POSG, and writes it to a UMB file.<br>
 # **Estimated evaluation time:** 1 minute
 #
 # The snippet is split into its three steps; each step ends with a `print` of what it built (not in the paper).

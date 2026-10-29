@@ -1,8 +1,9 @@
 # %% [markdown]
 # ## Sec. 4, Fig. 4: textual view of a UMB file
-# **Claim:** PRISM prints the UMB file of the example MDP in textual form as in Fig. 4, except for the creation date
-# and the state valuations, which it prints decoded rather than bit-packed.<br>
+# **Claim:** PRISM prints the UMB file of the example MDP in textual form as in Fig. 4.<br>
 # **Estimated evaluation time:** 1 minute
+#
+# The output differs from Fig. 4 only in the creation date and the state valuations, which PRISM prints decoded (`[(0,false),(1,false),(2,false),(2,true)]`) rather than bit-packed.
 
 # %%
 import os
