@@ -1,14 +1,12 @@
 # Artifact for "UMB: A Unified Markov Binary Format for Probabilistic Model Checking" (TACAS 2027)
 
-<!-- TODO: remove all TODOs before submission -->
-
 - **Paper:** TACAS 2027 regular tool paper, submission 0983.
 - **Badges claimed:** Available, Functional, Reusable.
 - **Tested on:** amd64: Ubuntu 24.04, Docker 29.8.
 
 ## Availability
 
-The artifact is permanently archived at [Zenodo](https://zenodo.org/records/23765898) and hosted on [GitHub](https://github.com/pmc-tools/umb-artifact).
+The artifact is permanently archived at [Zenodo](https://doi.org/10.5281/zenodo.23765897) (concept DOI: 10.5281/zenodo.23765897) and hosted on [GitHub](https://github.com/pmc-tools/umb-artifact).
 It contains:
 
 | File | Content |
@@ -46,7 +44,7 @@ Resources for the smoke test and the modes of the Sec. 6 benchmarks:
 | full | 1 core, 32 GiB | 110 GiB | 2 weeks |
 | subset, full with `--jobs N` | N cores, N × 32 GiB | as above | about 1/N of the above |
 
-The figures do not include the downloaded image file `umb-artifact-<arch>.tar.gz` (2.8 GiB).
+Add 2.8 GiB for the downloaded `umb-artifact-<arch>.tar.gz` until you delete it.
 
 ### Setup
 
@@ -94,7 +92,7 @@ The claims can be replicated in two ways, with the same scripts and the same exp
 
 We recommend the notebook for all claims except the `full` run of Sec. 6.1–6.3 (2 weeks), which is better run from the shell: stopping the Jupyter server or restarting the kernel aborts a running benchmark, which then has to start over.
 
-Each claim below gives the claim, the estimated evaluation time, the shell command, and what to look for in the output, which is the same in both modes.
+Each claim below gives the claim, its estimated evaluation time, its shell command and what to look for in the output (the same in both ways).
 Absolute times depend on the machine (paper: Intel Xeon 8468, 4 cores, 32 GiB).
 
 #### Sec. 2, Ex. 1: building a model with umbi
@@ -117,7 +115,7 @@ The output has one line per step (`MDP: 4 states, …`, `POMDP: 2 observations, 
 docker run --rm -t umb-artifact ipython /artifact/claims/2-fig4-textual-umb/run.ipy
 ```
 
-After PRISM's log, the output is Fig. 4, except for the creation date and the state valuations, which PRISM prints decoded (`[(0,false),(1,false),(2,false),(2,true)]`) rather than bit-packed.
+After PRISM's log, the output matches Fig. 4 except for the creation date and the state valuations, which PRISM prints decoded (`[(0,false),(1,false),(2,false),(2,true)]`) rather than bit-packed.
 
 #### Sec. 5: bitcoin-attack
 
@@ -131,7 +129,7 @@ docker run --rm -t umb-artifact ipython /artifact/claims/3-sec5-bitcoin-attack/r
 The output shows three steps, each followed by its `Wall time`:
 
 1. Storm builds, minimises and exports the model in under 3 s.
-   Its state counts, 11375 and 7403 after minimisation, are slightly smaller than in the paper: the paper's Storm command is obsolete, as it makes Storm also check the properties itself (step 3), so the export uses a command that skips checking.
+   The paper's Storm command is obsolete, as it also makes Storm check the properties (step 3); the export here skips checking, so the model is slightly smaller than in the paper: 11375 states, 7403 after minimisation.
 2. mcsta checks the property in 13 s and prints `Probability: 0.15435216442756577`.
 3. Storm with Unif+ (the paper's command, without the export) builds 11475 states, 7551 after minimisation, as in the paper, and is stopped after 2 minutes: `no result (time limit)`.
 
@@ -146,14 +144,14 @@ docker run --rm -t -v "$PWD/results:/artifact/results" umb-artifact ipython /art
 docker run --rm -t -v "$PWD/results:/artifact/results" umb-artifact ipython /artifact/claims/4-sec6-benchmarks/run.ipy full      # 2 weeks
 ```
 
-Each mode prints the numbers of Sec. 6.1–6.3 in the order of the paper, and writes them to `paper_numbers.txt`, and Figs. 5–6 to `plots.pdf` (also as `plots-1.png` and `plots-2.png`), in `results/replot/`, `results/subset/plots/` or `results/full/plots/`.
+Each mode prints the numbers of Sec. 6.1–6.3 in the paper's order and writes them to `paper_numbers.txt`, and Figs. 5–6 to `plots.pdf` (also `plots-1.png`, `plots-2.png`), in `results/replot/`, `results/subset/plots/` or `results/full/plots/`.
 
 - `replot` recomputes them from the logs of our runs; the result is identical to the paper.
 - `subset` runs 20 of the 36 models (1800 s limit, 1 repetition), `full` all 36 models as in the paper (7200 s limit, 5 repetitions).
   The subset leaves out the largest models, so its factors are smaller than the paper's (e.g., Storm loads UMB 31× instead of 40× faster than JANI), but it replicates the claim: UMB is loaded and written faster than the other formats, compresses about 7× (GZip) and 22× (XZ), and reduces the total model checking time; the plots look qualitatively the same as in the paper.
   Logs and an HTML overview of all measurements are in `results/<mode>/experiments/` (`html/index.html`).
 - With less than 32 GiB of RAM, more runs fail with out-of-memory (`MO`).
-- With `--jobs N` (e.g. `run.ipy -- subset --jobs 4`), N benchmarks run at a time, needing N times the RAM; the measured times are then less accurate.
+- With `--jobs N` (e.g., `run.ipy -- subset --jobs 4`), N benchmarks run at a time, needing N times the RAM; the measured times are then less accurate.
 
 **BCG results need CADP.**
 The BCG file sizes (Fig. 5, mcsta, right) and the comparison of UMB with BCG in Sec. 6.2 are obtained with `bcg_io` of CADP, which is proprietary and not in the image.

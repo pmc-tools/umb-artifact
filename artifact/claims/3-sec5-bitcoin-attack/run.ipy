@@ -15,14 +15,13 @@ os.chdir("/tmp/3-sec5-bitcoin-attack")
 
 # %% [markdown]
 # Storm builds, minimises and exports the model.
-# The paper's command is obsolete: its `--janiproperty` makes Storm also check the properties itself (the last step below).
-# Here, `--prop` only gives Storm the target states, so the model is slightly smaller than in the paper: 11375 states, 7403 after minimisation.
+# The paper's command is obsolete, as its `--janiproperty` also makes Storm check the properties (the last step below); `--prop` here only gives Storm the target states, so the model is slightly smaller than in the paper: 11375 states, 7403 after minimisation.
 
 # %%
 %time !storm --jani ba.jani -const MALICIOUS=40,CD=50 --prop "((m_len >= 50) & (m_diff > 0))" -e dd-to-sparse --bisimulation --exportbuild ba.umb
 
 # %% [markdown]
-# mcsta checks the property with the switch-step algorithm (`Probability: 0.15435216442756577`):
+# mcsta checks the property in 13 s with the switch-step algorithm (`Probability: 0.15435216442756577`):
 
 # %%
 # mcsta currently requires the initial state to be state 0, while Storm puts it at an arbitrary index.

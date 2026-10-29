@@ -3,16 +3,16 @@
 # **Claim:** each tool loads UMB faster than the other formats (sometimes by orders of magnitude) and writes it about an order of magnitude faster than its textual formats; compression shrinks UMB files about 7× (GZip) and 23× (XZ); and UMB reduces the total model checking time for almost all models, sometimes by orders of magnitude (Figs. 5–6 and the numbers of Sec. 6.1–6.3).<br>
 # **Estimated evaluation time:** 1 minute (`smoke`, `replot`), 5.5 hours (`subset`) or 2 weeks (`full`)
 #
-# The benchmarks of `umb-benchmarking/`, in one of four modes (set `MODE` below); results go to `results/<mode>/` in the mounted directory:
-# - `smoke`: benchmarks on one small model
-# - `replot`: Figs. 5–6 and the numbers of Sec. 6.1–6.3 from the logs of our runs
+# Four modes (set `MODE` below); results go to `results/<mode>/` in the mounted directory:
+# - `smoke`: benchmarks on one model (`consensus.4-4`), all tools and formats
+# - `replot`: Figs. 5–6 and the numbers of Sec. 6.1–6.3 from the logs of our runs; identical to the paper
 # - `subset`: benchmarks on 20 of the 36 models, 1800 s limit, 1 repetition
 # - `full`: benchmarks on all 36 models, 7200 s limit, 5 repetitions
 #
-# With `smoke`, `subset` or `full`, `JOBS` > 1 runs that many benchmarks at a time, needing that many times the RAM; the measured times are then less accurate.
+# With `smoke`, `subset` or `full`, `JOBS = N` runs N benchmarks at a time, needing N times the RAM; the measured times are then less accurate.
 # We recommend running `full` from the shell: stopping the Jupyter server or restarting the kernel aborts a running benchmark, which then has to start over.
 #
-# The BCG file sizes need `bcg_io` of CADP, which is proprietary and not in the image: `replot` uses our measurements, the other modes leave them out unless you supply your own CADP from the shell (README, "BCG results need CADP").
+# The BCG file sizes need `bcg_io` of CADP, which is proprietary and not in the image: `replot` reproduces them from our measurements; `subset` and `full` leave them out unless you supply your own CADP from the shell (README, "BCG results need CADP").
 
 # %%
 MODE = "replot"  # smoke, replot, subset or full
@@ -56,7 +56,8 @@ if MODE != "replot":
         !{BENCH}/{script}-jobs.sh < /dev/null
     # Without the exported models
     !mkdir -p {OUT}/experiments
-    !cd {BENCH}/experiments-{script} && cp -r $(ls | grep -v '^models$') {OUT}/experiments/
+    os.chdir(f"{BENCH}/experiments-{script}")
+    !cp -r $(ls | grep -v '^models$') {OUT}/experiments/
 
 # %% [markdown]
 # `replot`, `subset` and `full` compute the numbers of Sec. 6.1–6.3 and Figs. 5–6, from the logs of our runs (`replot`) or from the csv files of the benchmarks.
@@ -67,7 +68,8 @@ if MODE == "replot":
     os.chdir(PLOTS)
     !tar -xzf {BENCH}/experiments-paper/logs-paper.tar.gz 2> /dev/null
     !mkdir -p csv
-    !cd csv && python3 {BENCH}/scripts/create_csv.py ../logs {BENCH}/models > /dev/null
+    os.chdir("csv")
+    !python3 {BENCH}/scripts/create_csv.py ../logs {BENCH}/models > /dev/null
 elif MODE in ("subset", "full"):
     PLOTS = f"{OUT}/plots"
     !mkdir -p {PLOTS}
