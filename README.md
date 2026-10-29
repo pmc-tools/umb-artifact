@@ -1,4 +1,4 @@
-# Artifact supplement for: UMB — A Unified Markov Binary Format for Probabilistic Model Checking
+# Artifact for "UMB: A Unified Markov Binary Format for Probabilistic Model Checking" (TACAS 2027)
 
 <!-- TODO: remove all TODOs before submission -->
 
