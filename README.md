@@ -91,7 +91,10 @@ The claims can be replicated in two modes, with the same scripts and the same ex
   Then open http://localhost:8000/notebooks/claims.ipynb?token=umb in a browser.
   To stop the server, press Ctrl-C in the terminal where you started it (or choose File → Shut Down in the browser).
 
+We recommend the notebook for all claims except the `subset` and `full` runs of Sec. 6.1–6.3, which take hours to weeks and are better run from the shell: stopping the Jupyter server or restarting the kernel aborts a running benchmark, which then has to start over.
+
 Each claim below gives the claim, the estimated evaluation time, the shell command, and what to look for in the output, which is the same in both modes.
+Absolute times depend on the machine (paper: Intel Xeon 8468, 4 cores, 32 GiB).
 
 #### Sec. 2, Ex. 1: building a model with umbi
 
@@ -128,14 +131,12 @@ The output shows three steps, each followed by its `Wall time`:
 
 1. Storm builds, minimises and exports the model in under 3 s.
    Its state counts, 11375 and 7403 after minimisation, are slightly smaller than in the paper: the paper's Storm command is obsolete, as it makes Storm also check the properties itself (step 3), so the export uses a command that skips checking.
-2. mcsta prints `Probability: 0.15435216442756577`.
+2. mcsta checks the property in 13 s and prints `Probability: 0.15435216442756577`.
 3. Storm with Unif+ (the paper's command, without the export) builds 11475 states, 7551 after minimisation, as in the paper, and is stopped after 2 minutes: `no result (time limit)`.
-
-Absolute times depend on the machine (paper: Intel Xeon 8468).
 
 #### Sec. 6.1–6.3, Figs. 5–6: import and export times, file sizes, total times
 
-- **Claim:** for every tool, UMB is loaded and written faster than the other formats, compresses well (GZip, XZ), and reduces the total model checking time (Figs. 5–6 and the numbers of Sec. 6.1–6.3).
+- **Claim:** each tool loads UMB faster than the other formats (sometimes by orders of magnitude) and writes it about an order of magnitude faster than its textual formats; compression shrinks UMB files about 7× (GZip) and 23× (XZ); and UMB reduces the total model checking time for almost all models, sometimes by orders of magnitude (Figs. 5–6 and the numbers of Sec. 6.1–6.3).
 - **Estimated evaluation time:** 1 minute (`replot`), 5.5 hours (`subset`) or 2 weeks (`full`)
 
 ```bash
@@ -150,7 +151,7 @@ Each mode prints the numbers of Sec. 6.1–6.3 in the order of the paper, and wr
 - `subset` runs 20 of the 36 models (1800 s limit, 1 repetition), `full` all 36 models as in the paper (7200 s limit, 5 repetitions).
   The subset leaves out the largest models, so its factors are smaller than the paper's (e.g., Storm loads UMB 31× instead of 40× faster than JANI), but it replicates the claim: UMB is loaded and written faster than the other formats, compresses about 7× (GZip) and 22× (XZ), and reduces the total model checking time; the plots look qualitatively the same as in the paper.
   Logs and an HTML overview of all measurements are in `results/<mode>/experiments/` (`html/index.html`).
-- Absolute times depend on the machine (paper: Intel Xeon 8468, 4 cores, 32 GiB); with less than 32 GiB of RAM, more runs fail with out-of-memory (`MO`).
+- With less than 32 GiB of RAM, more runs fail with out-of-memory (`MO`).
 - With `--jobs N` (e.g. `run.ipy -- subset --jobs 4`), N benchmarks run at a time, needing N times the RAM; the measured times are then less accurate.
 
 **BCG results need CADP.**
@@ -159,10 +160,20 @@ The BCG file sizes (Fig. 5, mcsta, right) and the comparison of UMB with BCG in 
 To do so, start a shell in the container with `/path/to/your/cadp` replaced by your CADP directory on the host (the one containing `bin.<arch>/bcg_io`):
 
 ```bash
-docker run --rm -it -v "/path/to/your/cadp:/opt/cadp:ro" -e CADP=/opt/cadp -v "$PWD/results:/artifact/results" umb-artifact bash
+docker run --rm -it --hostname umb-artifact -v "/path/to/your/cadp:/opt/cadp" -e CADP=/opt/cadp -v "$PWD/results:/artifact/results" umb-artifact bash
 ```
 
-In the container, link `bcg_io` into the harness (replace `bin.x64` by your architecture directory if it differs) and run a mode (`smoke`, `subset` or `full`):
+CADP needs a license for the container, which this command names `umb-artifact` on every run.
+Obtain a license for this machine name and install it in `/opt/cadp` as CADP's instructions describe.
+Without a valid license, the `bcgio` runs fail, and their logs in `results/<mode>/experiments/logs/` show:
+
+```
+*007 protection violation:
+     illicit attempt at using ``bcg_io 1.8'' on machine ``umb-artifact''
+     no appropriate license
+```
+
+Once the license is in place, link `bcg_io` into the harness (replace `bin.x64` by your architecture directory if it differs) and run a mode (`smoke`, `subset` or `full`):
 
 ```bash
 ln -s /opt/cadp/bin.x64/bcg_io /artifact/umb-benchmarking/bin/bcgio

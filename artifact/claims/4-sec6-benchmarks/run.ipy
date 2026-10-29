@@ -1,7 +1,9 @@
 # %% [markdown]
 # ## Sec. 6.1-6.3, Figs. 5-6: import and export times, file sizes, total times
-# **Claim:** for every tool, UMB is loaded and written faster than the other formats, compresses well (GZip, XZ), and
-# reduces the total model checking time (Figs. 5-6 and the numbers of Sec. 6.1-6.3).<br>
+# **Claim:** each tool loads UMB faster than the other formats (sometimes by orders of magnitude) and writes it about
+# an order of magnitude faster than its textual formats; compression shrinks UMB files about 7× (GZip) and 23× (XZ);
+# and UMB reduces the total model checking time for almost all models, sometimes by orders of magnitude (Figs. 5-6
+# and the numbers of Sec. 6.1-6.3).<br>
 # **Estimated evaluation time:** 1 minute (`smoke`, `replot`), 5.5 hours (`subset`) or 2 weeks (`full`)
 #
 # The benchmarks of `umb-benchmarking/`, in one of four modes (set `MODE` below); results go to
@@ -11,11 +13,17 @@
 # - `subset`: benchmarks on 20 of the 36 models, 1800 s limit, 1 repetition
 # - `full`: benchmarks on all 36 models, 7200 s limit, 5 repetitions
 #
-# Run `subset` and `full` from the shell rather than in the notebook: closing the browser or restarting the kernel stops them.
+# With `smoke`, `subset` or `full`, `JOBS` > 1 runs that many benchmarks at a time, needing that many times the RAM; the
+# measured times are then less accurate.
+# We recommend running `subset` and `full` from the shell rather than in the notebook: stopping the Jupyter server or
+# restarting the kernel aborts a running benchmark, which then has to start over.
+#
+# The BCG file sizes need `bcg_io` of CADP, which is proprietary and not in the image; `replot` uses our measurements, `smoke`, `subset` and `full` leave them out.
+# To include them, use your own licensed CADP from the shell as the README describes ("BCG results need CADP"): the container needs the fixed hostname `umb-artifact` (`docker run --hostname umb-artifact`), since CADP licenses are bound to a machine name.
 
 # %%
 MODE = "replot"  # smoke, replot, subset or full
-JOBS = 1  # with smoke, subset or full: benchmarks at a time (needs JOBS times the RAM)
+JOBS = 1  # benchmarks at a time
 
 import sys
 if "ipykernel" not in sys.modules:  # run from the shell

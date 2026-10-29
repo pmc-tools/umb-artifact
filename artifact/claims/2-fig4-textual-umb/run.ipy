@@ -11,12 +11,11 @@ os.makedirs("/tmp/2-fig4-textual-umb", exist_ok=True)
 os.chdir("/tmp/2-fig4-textual-umb")
 
 # %% [markdown]
-# umbi writes the example MDP (Ex. 1) to `mdp.umb`:
+# umbi writes the example MDP (Ex. 1), with the label `g`, the reward `r`, and the variables `x` and `b`, to `mdp.umb`:
 
 # %%
 import umbi
 
-# The MDP of Ex. 1 with the label g, the reward r, and the variables x and b of example.prism
 ats = umbi.ats.SimpleAts()
 ats.new_states(4)
 ats.initial_states = [0]
