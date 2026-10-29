@@ -17,9 +17,9 @@ It contains:
 | `paper.pdf` | the submitted paper |
 | `umb-artifact.zip` | the sources of the image |
 | `README.md` | this file |
-| `LICENSE` | license file; the tools in the image keep their own licenses |
+| `LICENSE` | license file; the tools in the image keep their own licenses (mcsta: `artifact/docker/Modest-License.txt` in `umb-artifact.zip`) |
 
-The image is based on the [UMB Observatory](https://github.com/pmc-tools/umb-observatory) and contains Storm 1.14.0+, PRISM 4.11+, mcsta v3.1.315 and umbi 0.2.15 (exact versions in [Building the image](#building-the-image)), plus the scripts and benchmarks to replicate the paper's claims.
+The image is based on the [UMB Observatory](https://github.com/pmc-tools/umb-observatory) and contains Storm 1.14.0+, PRISM 4.11+, mcsta v3.1.315, umbi 0.2.15 and Stormvogel 0.13 (exact versions in [Building the image](#building-the-image)), plus the scripts and benchmarks to replicate the paper's claims.
 
 `umb-artifact.zip` is only needed to build the image or to inspect the sources:
 
@@ -84,13 +84,23 @@ Its last line is `Done: results/smoke/`; `results/smoke/experiments/csv/` then c
 docker run --rm -t umb-artifact python /artifact/claims/1-fig4-textual-umb/run.py
 ```
 
-umbi writes the example MDP to `mdp.umb`, and PRISM prints the contents of the file (`prism -ex -importmodel mdp.umb -exportmodel mdp.umbt:format=umb,text`).
+umbi writes the example MDP to `mdp.umb`, and PRISM prints the contents of the file.
 The output is Fig. 4, except for the creation date and the state valuations, which PRISM prints decoded (`[(0,false),(1,false),(2,false),(2,true)]`) rather than bit-packed.
 
 #### Sec. 5: bitcoin-attack
 
 Storm builds, minimises and exports the bitcoin-attack MA to UMB in under 3 s (11475 states, 7551 after minimisation); mcsta checks the time-bounded reachability property on it in 13 s; Storm with Unif+ gives no result within 2 minutes.
-TODO
+
+```bash
+docker run --rm -t umb-artifact python /artifact/claims/2-sec5-bitcoin-attack/run.py
+```
+
+Storm builds, minimises and exports the model and prints the state counts before and after minimisation.
+`umb_reorder.py` then moves the initial state to index 0, which mcsta currently requires (a temporary workaround that is not in the paper).
+Finally, mcsta checks the property and prints `Probability: 0.15435216442756577`.
+Last, Storm checks the property itself with Unif+ and is stopped after 2 minutes without a result (`no result after 120.0 s (time limit)`).
+Each command is followed by its wall-clock time (about 2 min 10 s in total).
+The paper's Storm command is obsolete: it makes Storm also check the properties itself, so this script uses it only for the Unif+ step (where it builds 11475 states, 7551 after minimisation, as in the paper), and builds the exported model with a command that skips checking (11375 states, 7403 after minimisation).
 
 #### Sec. 6.1–6.3, Figs. 5–6: import and export times, file sizes, total times
 
@@ -119,15 +129,14 @@ To do so, start a shell in the container with `/path/to/your/cadp` replaced by y
 docker run --rm -it -v "/path/to/your/cadp:/opt/cadp:ro" -e CADP=/opt/cadp -v "$PWD/results:/artifact/results" umb-artifact bash
 ```
 
-In the container, link `bcg_io` into the harness (replace `bin.x64` by your architecture directory if it differs), enable its BCG step, and run a mode (`smoke`, `subset` or `full`):
+In the container, link `bcg_io` into the harness (replace `bin.x64` by your architecture directory if it differs) and run a mode (`smoke`, `subset` or `full`):
 
 ```bash
 ln -s /opt/cadp/bin.x64/bcg_io /artifact/umb-benchmarking/bin/bcgio
-sed -i 's|^# python3 ../scripts/aut_to_bcg.py|python3 ../scripts/aut_to_bcg.py|' /artifact/umb-benchmarking/*.sh
 python /artifact/claims/3-sec6-benchmarks/run.py smoke
 ```
 
-The BCG sizes then appear in `results/<mode>/experiments/` (as `bcgio`), and for `subset` and `full` also in `plots.pdf` and `paper_numbers.txt`.
+The harness then also converts the exported `.aut` files to BCG, and the BCG sizes appear in `results/<mode>/experiments/` (as `bcgio`), and for `subset` and `full` also in `plots.pdf` and `paper_numbers.txt`.
 
 #### Sec. 6.4: explicit encodings in the PRISM language
 
@@ -143,7 +152,7 @@ docker run --rm -t umb-artifact python /artifact/claims/4-sec6.4-flat-prism/run.
 ```
 
 umbi generates random models with 10k and 100k states and writes each both as UMB and as a flat PRISM-language file (one command per choice).
-PRISM builds the model from both (`prism -ex -importmodel game-<n>.umb`, `prism -ex game-<n>.prism`) and the script prints the time of each.
+PRISM builds the model from both and the script prints the time of each.
 From the UMB file, both models take about a second; from the PRISM file, the 10k model takes seconds, while the 100k model hits the time limit.
 
 #### Sec. 2, Ex. 1: building a model with umbi
@@ -154,18 +163,18 @@ umbi builds the example MDP from Python and writes it to a UMB file: section "Cr
 
 ### Using UMB
 
-The usage of UMB in Storm, PRISM, mcsta and umbi, including the API of umbi, is documented in the UMB Observatory's getting-started notebook, online at https://pmc-tools.github.io/umb-observatory/.
-It creates a model with umbi, inspects the file (`index.json` and the binary files), checks the model with the three tools, and tests the tools against each other with `umbtest`.
-More umbi examples: [github.com/pmc-tools/umbi/tree/main/examples](https://github.com/pmc-tools/umbi/tree/main/examples).
-
-The image contains the notebook for the tool versions of the paper (the online one follows the latest versions).
-To run it offline, start the image:
+The usage of UMB in Storm, PRISM, mcsta, umbi and Stormvogel, including the API of umbi, is documented in the UMB Observatory's getting-started notebook, which the image contains.
+It creates a model with umbi, inspects the file (`index.json` and the binary files), draws it with Stormvogel, checks the model with the three tools, and tests the tools against each other with `umbtest`.
+Started without a command, the image runs a Jupyter server with the notebook, where you can run its cells, change them and try your own models:
 
 ```bash
 docker run --rm -p 127.0.0.1:8000:8000 -e JUPYTER_TOKEN=umb umb-artifact
 ```
 
-and open http://localhost:8000/notebooks/getting_started.ipynb?token=umb.
+Then open http://localhost:8000/notebooks/getting_started.ipynb?token=umb in a browser.
+
+A read-only version of the notebook is online at https://pmc-tools.github.io/umb-observatory/; it follows the latest tool versions, while the one in the image matches the tool versions of the paper.
+More umbi examples: [github.com/pmc-tools/umbi/tree/main/examples](https://github.com/pmc-tools/umbi/tree/main/examples).
 
 ### Benchmarking further models
 
@@ -204,3 +213,4 @@ The build downloads the tools' sources, so it needs internet access.
 | PRISM | [4.11](https://github.com/prismmodelchecker/prism/releases/tag/v4.11) + 1 commit (commit [`f118f0b`](https://github.com/prismmodelchecker/prism/commit/f118f0b2706d0deed1f57b4110fbeb01e4142366)) |
 | mcsta | [v3.1.315](https://www.modestchecker.net/downloads/); the paper used v3.1.311, which is no longer available ([changelog](https://www.modestchecker.net/downloads/changelog.html): the only change is a new, optional algorithm) |
 | umbi | [0.2.15](https://pypi.org/project/umbi/0.2.15/) |
+| Stormvogel | [0.13](https://pypi.org/project/stormvogel/0.13/) |

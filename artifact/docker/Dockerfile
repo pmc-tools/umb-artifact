@@ -18,6 +18,12 @@ RUN apt-get update -qq \
 # So that the tools can be called as storm, prism and modest
 ENV PATH="/opt/prism/prism/bin:/opt/Modest:$PATH"
 
+# The observatory installs the latest stormvogel; pin the version of the README (and keep umbi's pin)
+RUN python3 -m pip install --no-cache-dir stormvogel==0.13 umbi==0.2.15
+
+# Modest's license, amended by its author to permit redistribution as part of this artifact
+COPY docker/Modest-License.txt /opt/Modest/License.txt
+
 WORKDIR /artifact
 COPY umb-benchmarking umb-benchmarking
 COPY claims claims

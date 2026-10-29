@@ -22,7 +22,7 @@ target "observatory" {
     # PRISM 4.11 + 1 commit
     PRISM_REF         = "f118f0b2706d0deed1f57b4110fbeb01e4142366"
     # mcsta: v3.1.311 of the paper can no longer be downloaded
-    MODEST_VERSION    = "v3.1.315-g0a0763b35"
+    MODEST_VERSION    = "v3.1.315-g5c27830737"
     UMBI_SPEC         = "umbi==0.2.15"
     REGRESSION_REF    = "22da8d6ed73ab3b00f9324a0639d86f1d36e30c0"
   }
